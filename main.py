@@ -7,6 +7,8 @@ Mở:  http://localhost:5000
 - Không cần file index.html riêng (HTML nhúng sẵn)
 - Không lưu JSON history (chỉ giữ RAM)
 - Mỗi game chỉ giữ 10 phiên gần nhất
+- Đã BỎ SumClub
+- Sunwin: token đã gộp vào sunwin.py (không cần token.txt)
 """
 
 import os
@@ -22,19 +24,16 @@ if sys.platform == 'win32':
 # ============================================================
 # 1) KHÔNG LƯU FILE — CHỈ GIỮ TRONG RAM
 # ============================================================
-# Override load/save để các file game không ghi ra JSON
 builtins.load   = lambda name: []
 builtins.save   = lambda name, data: None
 builtins._sload = lambda name: []
 builtins._ssave = lambda name, data: None
 
 # ============================================================
-# 2) IMPORT 13 FILE GAME
+# 2) IMPORT 12 FILE GAME (đã bỏ sumclub)
 # ============================================================
-# File 789.py bắt đầu bằng số → dùng importlib
 game789 = importlib.import_module('789')
 
-# Các file còn lại import bình thường
 import b52
 import betvip
 import hitclub
@@ -44,17 +43,16 @@ import max789
 import rikvip
 import sao789
 import son789
-import sumclub
 import sunwin
 import xocdia88
 
 MODULES = [
     game789, b52, betvip, hitclub, lc79, luck8,
-    max789, rikvip, sao789, son789, sumclub, sunwin, xocdia88
+    max789, rikvip, sao789, son789, sunwin, xocdia88
 ]
 
 # ============================================================
-# 3) CHỈ GIỮ 10 PHIÊN GẦN NHẤT TRONG RAM
+# 3) CHỈ GIỮ 10 PHIÊN GẦN NHẤT
 # ============================================================
 MAX_MEMORY = 10
 
@@ -62,7 +60,7 @@ for m in MODULES:
     if hasattr(m, 'MAX_HISTORY'):
         m.MAX_HISTORY = MAX_MEMORY
 
-# Patch riêng cho sunwin (dùng slice cứng [100:])
+# Patch sunwin (dùng slice cứng [100:])
 try:
     _orig_commit = sunwin._commit_tx
     def _patched_commit(sid, d1, d2, d3, source):
@@ -74,7 +72,7 @@ try:
 except Exception as e:
     print(f"[Patch] sunwin: {e}")
 
-# Patch riêng cho 789 (dùng slice cứng [:100])
+# Patch 789 (dùng slice cứng [:100])
 try:
     _orig_parse = game789.parse_tx_data
     def _patched_parse(msg):
@@ -95,14 +93,13 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-# Đăng ký blueprint
 for m in MODULES:
     app.register_blueprint(m.bp)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ============================================================
-# 5) HTML NHÚNG SẴN
+# 5) HTML NHÚNG SẴN (đã bỏ SumClub)
 # ============================================================
 HTML = r"""<!DOCTYPE html>
 <html lang="vi">
@@ -328,14 +325,14 @@ footer{border-top:1px solid var(--line);background:rgba(8,9,14,.6)}
 <section class="wrap hero">
   <div class="pill"><i></i> Hệ thống hoạt động · 99.99% uptime</div>
   <h1>Kho <em>API Game</em><br>Đổi Thưởng Siêu Tốc</h1>
-  <p>Tích hợp 13 cổng game lớn nhất thị trường. Nhấn vào endpoint để xem JSON trực tiếp từ server.</p>
+  <p>Tích hợp 12 cổng game lớn nhất thị trường. Nhấn vào endpoint để xem JSON trực tiếp từ server.</p>
   <div class="search">
     <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
     <input type="search" id="search" placeholder="Tìm game... (Sunwin, 789Club, B52...)" autocomplete="off">
   </div>
   <div class="stats">
-    <div class="stat"><b>13</b><span>GAME API</span></div>
-    <div class="stat"><b>28</b><span>ENDPOINT</span></div>
+    <div class="stat"><b>12</b><span>GAME API</span></div>
+    <div class="stat"><b>26</b><span>ENDPOINT</span></div>
     <div class="stat"><b>10</b><span>PHIÊN LƯU</span></div>
     <div class="stat"><b>24/7</b><span>HỖ TRỢ</span></div>
   </div>
@@ -522,14 +519,6 @@ const GAMES = [
     c1:'#14b8a6', c2:'#06b6d4', tags:['new'], players:'34K',
     endpoints:[
       { mode:'txmd5', path:'/son789/api/tx' }
-    ]
-  },
-  {
-    name:'SumClub', sub:'Sum vầy đại thắng', img:'sumclub.png', logo:'SC',
-    c1:'#ec4899', c2:'#f43f5e', tags:['hot'], players:'67K',
-    endpoints:[
-      { mode:'tx',    path:'/sumclub/api/tx' },
-      { mode:'txmd5', path:'/sumclub/api/md5' }
     ]
   },
   {
@@ -806,7 +795,6 @@ def index():
 
 @app.route('/<path:filename>')
 def serve_static(filename):
-    # Chặn truy cập file .py, .txt và file ẩn
     if filename.endswith('.py') or filename.startswith('.') or filename.endswith('.txt'):
         return "Not found", 404
     return send_from_directory(BASE_DIR, filename)
@@ -827,7 +815,7 @@ def start_all():
 # ============================================================
 if __name__ == '__main__':
     print("=" * 60)
-    print("🎮 GameAPI Hub")
+    print("🎮 GameAPI Hub (12 game — đã bỏ SumClub)")
     print("=" * 60)
     print("⏳ Đang khởi động các worker...")
 
@@ -843,5 +831,5 @@ if __name__ == '__main__':
         port=5000,
         debug=False,
         threaded=True,
-        use_reloader=False   # ⚠️ PHẢI False — tránh chạy workers 2 lần
+        use_reloader=False
     )
